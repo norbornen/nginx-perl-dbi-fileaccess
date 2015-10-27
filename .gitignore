@@ -1,3 +1,4 @@
+!.gitignore
 /blib/
 /.build/
 _build/
@@ -18,3 +19,11 @@ nytprof.out
 *.o
 *.bs
 /_eumm/
+*~
+*.bak
+*.swp
+DEADJOE
+.lwpcookies
+pod2htm*.tmp
+Util-Nginx-*
+Util-Nginx-*.tar.gz
