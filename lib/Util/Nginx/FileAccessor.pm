@@ -6,16 +6,16 @@ Util::Nginx::FileAccessor
 
 =head1 VERSION
 
-Version 0.04
+Version 0.05
 
 =cut
 
 use strict;
 use common::sense;
 use nginx;
-use Util::Nginx::Helper;
+use Util::Nginx::DB;
 
-our $VERSION = '0.04';
+our $VERSION = '0.05';
 
 our $RawFilesROOT = '/path/to/file/storage';
 
@@ -23,7 +23,7 @@ our $RawFilesROOT = '/path/to/file/storage';
 
 =head2	handlerDirect
 
-http://www.site.xyz/pubs/share/direct/143607464
+http://www.site.xyz/bla/direct/143607464
 
 =cut
 sub handlerDirect {
@@ -35,11 +35,13 @@ sub handlerDirect {
 	}
 	$r->discard_request_body;
 
+	#	request uri
+	my $uri = $r->uri;
 
 	my $fileObj;
 
-	if ($r->uri =~ m|/(\d+)/?$| || $r->uri =~ m|/(\d+)\.\w{2,5}$|) {
-		my $dbh = connectDB();
+	if ($uri =~ m|/(\d+)/?$| || $uri =~ m|/(\d+)\.\w{2,5}$|) {
+		my $dbh = Util::Nginx::DB->new();
 		my $id = $1;
 
 		$fileObj = $dbh->selectrow_hashref(q|select * from files where id = ?|, {}, $id);
@@ -50,7 +52,7 @@ sub handlerDirect {
 
 =head2	handlerThumb
 
-http://www.site.xyz/pubs/share/thumb/146573356:c729x729+0+597:r600x600!
+http://www.site.xyz/bla/thumb/146573356:c729x729+0+597:r600x600!
 
 =cut
 sub handlerThumb {
@@ -63,10 +65,13 @@ sub handlerThumb {
 	$r->discard_request_body;
 
 
+	#	request uri
+	my $uri = $r->uri;
+
 	my $fileObj;
 
-	if ($r->uri =~ m|/thumb/(\d+):(.+)$|) {
-		my $dbh = connectDB();
+	if ($uri =~ m|/thumb/(\d+):(.+)$|) {
+		my $dbh = Util::Nginx::DB->new();
 		my $id = $1;
 		my $ImageThumb = $2;
 
@@ -81,7 +86,7 @@ sub handlerThumb {
 
 =head2	handlerBookThumb
 
-http://www.site.xyz/pubs/share/book/cover/thumb/164179821x70
+http://www.site.xyz/bla/cover/thumb/164179821x70
 
 =cut
 sub handlerBibitemThumb {
@@ -94,10 +99,13 @@ sub handlerBibitemThumb {
 	$r->discard_request_body;
 
 
+	#	request uri
+	my $uri = $r->uri;
+
 	my $fileObj;
 
-	if ($r->uri =~ m{/(book|preprint)/cover/thumb/(.+)$}) {
-		my $dbh = connectDB();
+	if ($uri =~ m{/(book|preprint)/cover/thumb/(.+)$}) {
+		my $dbh = Util::Nginx::DB->new();
 		my $typeData = $1;
 		my ($objId, $resizeWidth, $resizeHeight) = split /x/, $2;
 		my $tablename = 'table_'.$typeData;
@@ -132,8 +140,12 @@ sub handlerPersonImage {
 	}
 	$r->discard_request_body;
 
-	if ($r->uri =~ m|/image/(\d+)/?$|) {
-		my $dbh = connectDB();
+
+	#	request uri
+	my $uri = $r->uri;
+
+	if ($uri =~ m|/image/(\d+)/?$|) {
+		my $dbh = Util::Nginx::DB->new();
 		my $personId = $1;
 
 		my $person = $dbh->selectrow_hashref(q|select json->'cropimage' as cropimage, json->'image' as image from persons where id = ?|, {}, $personId);
@@ -169,7 +181,7 @@ sub _sendFile {
 	return $error_code || HTTP_NOT_FOUND if $error_code || !$fileObj;
 
 	$r->header_out('Content-Disposition', qq|filename="$fileObj->{original_name}"|);
-	$r->header_out('X-XYZ', 'Util::Nginx::FileAccessor');
+	$r->header_out('X-XYZ', 'Util::Nginx::FileAccessor, file='.$fileObj->{id});
 	$r->send_http_header($fileObj->{file_type});
 	$r->sendfile($fileObj->{file_path_site});
 

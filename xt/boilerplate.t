@@ -52,8 +52,8 @@ TODO: {
 
   module_boilerplate_ok('lib/Util/Nginx.pm');
   module_boilerplate_ok('lib/Util/Nginx/Helper.pm');
+  module_boilerplate_ok('lib/Util/Nginx/DB.pm');
   module_boilerplate_ok('lib/Util/Nginx/FileAccessor.pm');
 
 
 }
-

@@ -1,5 +1,6 @@
 lib/Util/Nginx.pm
 lib/Util/Nginx/FileAccessor.pm
+lib/Util/Nginx/DB.pm
 lib/Util/Nginx/Helper.pm
 Makefile.PL
 MANIFEST			This list of files
