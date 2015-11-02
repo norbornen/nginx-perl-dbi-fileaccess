@@ -52,7 +52,7 @@ sub handlerDirect {
 
 =head2	handlerThumb
 
-http://www.site.xyz/bla/thumb/146573356:c729x729+0+597:r600x600!
+http://www.site.xyz/bla/thumb/146573356:729x729
 
 =cut
 sub handlerThumb {
@@ -73,10 +73,9 @@ sub handlerThumb {
 	if ($uri =~ m|/thumb/(\d+):(.+)$|) {
 		my $dbh = Util::Nginx::DB->new();
 		my $id = $1;
-		my $ImageThumb = $2;
+		my $thumb = $2;
 
-		my $fileId = $dbh->selectcol_arrayref(q|select json->>'thumb' from file_thumbs where context = ? and name = concat('ImageThumb-'::text, ?::text)|, {}, $id, $ImageThumb)->[0];
-		$fileObj = $fileId ? $dbh->selectrow_hashref(q|select * from files where id = ?|, {}, $fileId) : undef;
+		$fileObj = $dbh->selectrow_hashref(q|select * from files where file = ? and thumb = ?|, {}, $id, $thumb);
 
 		return HTTP_NOT_ALLOWED unless $fileObj;
 	}
@@ -86,7 +85,7 @@ sub handlerThumb {
 
 =head2	handlerBookThumb
 
-http://www.site.xyz/bla/cover/thumb/164179821x70
+http://www.site.xyz/bla/cover/thumb/164179821:729x729
 
 =cut
 sub handlerBibitemThumb {
@@ -107,20 +106,14 @@ sub handlerBibitemThumb {
 	if ($uri =~ m{/(book|preprint)/cover/thumb/(.+)$}) {
 		my $dbh = Util::Nginx::DB->new();
 		my $typeData = $1;
-		my ($objId, $resizeWidth, $resizeHeight) = split /x/, $2;
+		my ($objId, $thumb) = split /:/, $2;
 		my $tablename = 'table_'.$typeData;
 
 		if ($objId && $objId =~ /^\d+$/) {
-			$fileObj = $dbh->selectrow_hashref(qq|select f.* from $tablename b join files f on f.id = b.cover where b.id = ?|, {}, $objId);
+			$fileObj = $dbh->selectrow_hashref(qq|select f.* from $tablename b join files f on f.id = b.cover where b.id = ? and f.thumb = ?|, {}, $objId, $thumb);
 		}
-		if ($fileObj && $fileObj->{id} && defined $resizeWidth && $resizeWidth =~ /^\d+$/) {
-			$fileObj = $dbh->selectrow_hashref(
-							q|select f.* from files f join file_thumbs r on (r.json->>'thumb')::int = f.id and r.context = ? and r.name = ?|,
-							{},
-							$fileObj->{id},	'ImageThumb-'.join('x', grep {$_} $resizeWidth, $resizeHeight));
 
-			return HTTP_NOT_ALLOWED unless $fileObj;
-		}
+		return HTTP_NOT_ALLOWED unless $fileObj;
 	}
 
 	return _sendFile($r, $fileObj);
